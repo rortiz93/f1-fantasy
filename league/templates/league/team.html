@@ -1,0 +1,149 @@
+{% extends 'league/base.html' %}
+
+{% block title %}Team - {{ team.name }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>{{ team.name }} - Team Dashboard</h1>
+
+    <!-- Race Weekend Selection -->
+    <section class="mt-5">
+        <h2>Race Weekend Selection</h2>
+        {% if next_race %}
+            <a href="{% url 'race_selection' league_id=league.id team_id=team.id pk=next_race.id %}" class="btn btn-primary">
+                Make Selection for {{ next_race.template.name  }} - {{ next_race.template.date|date:"F j, Y" }}
+            </a>
+        {% else %}
+            <p>No upcoming race weekends at the moment.</p>
+        {% endif %}
+    </section>
+    <h2>{{ team_total_points }}</h2>
+    <!-- Past Selections Dropdown -->
+    <section class="mt-5">
+        <h2>Past Selections</h2>
+        {% if past_selections %}
+            <label for="raceSelectionDropdown">Select a Race Weekend:</label>
+            <select id="raceSelectionDropdown" class="form-select">
+                <option value="">Select a race</option>
+                {% for selection in past_selections %}
+                    <option value="race-{{ selection.race.id }}">{{ selection.race.template.name }} - {{ selection.race.date|date:"F j, Y"  }}</option>
+                {% endfor %}
+            </select>
+
+            <!-- Past Selection Details (initially hidden) -->
+            {% for selection in past_selections %}
+                <div id="race-{{ selection.race.id }}" class="race-selection-details" style="display: none;">
+                    <h4>{{ selection.race.name }} - {{ selection.race.date|date:"F j, Y" }}</h4>
+                    <p><strong>Drivers Selected:</strong></p>
+                    <ul>
+                        {% for driver in selection.drivers.all %}
+                            <li>{{ driver.name }} ({{ driver.constructor.name }})</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endfor %}
+        {% else %}
+            <p>No past race weekend selections yet.</p>
+        {% endif %}
+    </section>
+
+    <!-- Top and Worst Driver Stats -->
+    <section class="mt-5">
+        <h2>Driver Performance Stats</h2>
+        <div class="row">
+            <div class="col-md-6">
+                <h3>Tier 1 Drivers</h3>
+                {% if top_drivers %}
+                    <ul class="list-group">
+                        {% for driver_info in top_drivers %}
+                            <li class="list-group-item">
+                                {{ driver_info.driver.name }} - {{ driver_info.points }} Points
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p>No performance data available.</p>
+                {% endif %}
+            </div>
+            <div class="col-md-6">
+                <h3>Tier 2 Drivers</h3>
+                {% if worst_drivers %}
+                    <ul class="list-group">
+                        {% for driver_info in worst_drivers %}
+                            <li class="list-group-item">
+                                {{ driver_info.driver.name }} - {{ driver_info.points }} Points
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p>No performance data available.</p>
+                {% endif %}
+            </div>
+        </div>
+    </section>
+    
+    <section class="mt-5">
+        <h3>Prediction Questions Correctly Answered</h3>
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Race</th>
+                
+                    <th>Points Earned</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for prediction in correct_predictions %}
+                <tr>
+                    <td>{{ prediction.prediction_question.race }}</td>
+                
+                    <td>{{ prediction.points_earned }}</td>
+                </tr>
+                {% endfor %}
+                <tr>
+                    <th colspan="1">Total Points from Predictions</th>
+                    <td><strong>{{ total_prediction_points }}</strong></td>
+                </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <!-- Tier 1 Selection Limits -->
+    <section class="mt-5">
+        <h2>Tier 1 Driver Selection Limits</h2>
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Driver</th>
+                    <th>Constructor</th>
+                    <th>Times Selected</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for driver, count in tier_1_selection_counts.items %}
+                    <tr>
+                        <td>{{ driver.name }}</td>
+                        <td>{{ driver.constructor.name }}</td>
+                        <td>{{ count }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+</div>
+<!-- JavaScript to handle dropdown and show selection details -->
+<script>
+    document.getElementById('raceSelectionDropdown').addEventListener('change', function () {
+        // Hide all race selection details
+        document.querySelectorAll('.race-selection-details').forEach(function (section) {
+            section.style.display = 'none';
+        });
+
+        // Show the selected race's details if a valid race is chosen
+        const selectedRaceId = this.value;
+        if (selectedRaceId) {
+            document.getElementById(selectedRaceId).style.display = 'block';
+        }
+    });
+</script>
+{% endblock %}

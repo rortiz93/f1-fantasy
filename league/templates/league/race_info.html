@@ -1,0 +1,43 @@
+{% extends 'league/base.html' %}
+
+{% block title %}{{ race.name }} - Race Details{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>{{ race.name }}</h1>
+    <p><strong>Date:</strong> {{ race_template.date|date:"F j, Y" }}</p>
+    <p><strong>Location:</strong> {{ race_template.location }}</p>
+    <p><strong>Circuit:</strong> {{ race_template.circuit }}</p>
+    <p><strong>Season:</strong> {{ race_template.season }}</p>
+
+    <!-- Top Performers Section -->
+    <section class="mt-5">
+        {% if top_performers %}
+            <h2>Race Results</h2>
+       
+            <table class="table table-striped mt-3">
+                <thead>
+                    <tr>
+                        <th>Position</th>
+                        <th>Driver</th>
+                        <th>Constructor</th>
+                        <th>Points</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for result in top_performers %}
+                        <tr>
+                            <td>{{ result.position }}</td>
+                            <td>{{ result.driver.name }}</td>
+                            <td>{{ result.driver.constructor.name }}</td>
+                            <td>{{ result.points }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>The race has not occurred yet, so there are no results available.</p>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}

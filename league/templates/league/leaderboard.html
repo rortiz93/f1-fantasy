@@ -1,0 +1,21 @@
+
+{% extends 'league/base.html' %}
+
+{% block title %}Leaderboard{% endblock %}
+
+{% block content %}
+    <h2>Leaderboard</h2>
+    <table>
+        <tr>
+            <th>Username</th>
+            <th>Total Points</th>
+        </tr>
+        {% for entry in leaderboard %}
+        <tr>
+            <td>{{ entry.user__username }}</td>
+            <td>{{ entry.total_points }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+
+{% endblock %}

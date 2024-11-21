@@ -1,0 +1,21 @@
+
+
+{% extends 'league/base.html' %}
+
+{% block title %}Profile{% endblock %}
+
+{% block content %}
+<h2>Your Leagues and Teams</h2>
+
+{% for entry in user_leagues %}
+    <h3>
+        League: 
+        <a href="{% url 'league' entry.league.id %}">
+            {{ entry.league.name }} (Season: {{ entry.league.season }})
+        </a>
+    </h3>
+    <p>Team: {{ entry.team.name }}</p>
+{% empty %}
+    <p>You are not part of any leagues yet.</p>
+{% endfor %}
+{% endblock %}

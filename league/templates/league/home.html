@@ -1,0 +1,48 @@
+{% extends 'league/base.html' %}
+
+{% block title %}Home{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <h1>Welcome, {{ user.username }}</h1>
+
+    <!-- Leagues Section -->
+    <section class="mt-5">
+        <h2>Your Leagues</h2>
+        {% if leagues_with_teams %}
+            <ul class="list-group">
+                {% for league_info in leagues_with_teams %}
+                
+                    <li class="list-group-item">
+                       <a href="{% url 'league' league_info.league_id %}" ><strong>{{ league_info.league_name }}</strong> - {{ league_info.team_name }}</a>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>You are not part of any leagues yet.</p>
+        {% endif %}
+    </section>
+
+    <!-- Create League Button -->
+    <section class="mt-5">
+        <a href="" class="btn btn-primary">Create a New League</a>
+    </section>
+
+    <!-- Upcoming Race Weekend Section -->
+    <section class="mt-5">
+        <h2>Upcoming Race Weekend</h2>
+        {% if next_race %}
+            <div class="card mt-3">
+                <div class="card-body">
+                    <h5 class="card-title">{{ next_race.template.name }}</h5>
+                    <p class="card-text">
+                        <strong>Date:</strong> {{ next_race.template.date|date:"F j, Y" }}<br>
+                        <strong>Location:</strong> {{ next_race.template.circuit_name }} - {{ next_race.template.location }}
+                    </p>
+                </div>
+            </div>
+        {% else %}
+            <p>No upcoming races at the moment.</p>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}

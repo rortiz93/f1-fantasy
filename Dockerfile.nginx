@@ -1,0 +1,6 @@
+# Dockerfile for Nginx
+# Use an official Nginx image as a base
+FROM nginx:alpine
+
+# Copy Nginx config to container
+COPY nginx.conf /etc/nginx/nginx.conf

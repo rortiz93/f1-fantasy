@@ -1,0 +1,31 @@
+
+
+{% extends 'league/base.html' %}
+
+{% block title %}Team Selection{% endblock %}
+
+{% block content %}
+<form method="post">
+    {% csrf_token %}
+
+    {% if form.non_field_errors %}
+        <div class="alert alert-warning">
+            {% for error in form.non_field_errors %}
+                <p>{{ error }}</p>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <div class="form-group">
+        {{ form.tier_1_driver.label_tag }}
+        {{ form.tier_1_driver }}
+    </div>
+
+    <div class="form-group">
+        {{ form.tier_2_drivers.label_tag }}
+        {{ form.tier_2_drivers }}
+    </div>
+
+    <button type="submit" class="btn btn-primary">Submit Team</button>
+</form>
+{% endblock %}

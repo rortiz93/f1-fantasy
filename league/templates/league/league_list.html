@@ -1,0 +1,20 @@
+{% extends 'league/base.html' %}
+
+{% block title %}Home{% endblock %}
+
+{% block content %}
+<h2>Leagues</h2>
+<ul>
+    {% if leagues_with_teams %}
+            <ul class="list-group">
+                {% for league_info in leagues_with_teams %}
+                    <li class="list-group-item">
+                       <a href="{% url 'league' league_info.league_id %}" ><strong>{{ league_info.league_name }}</strong> - {{ league_info.team_name }}</a>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>You are not part of any leagues yet.</p>
+        {% endif %}
+</ul>
+{% endblock %}

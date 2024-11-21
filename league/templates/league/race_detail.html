@@ -1,0 +1,148 @@
+{% extends 'league/base.html' %}
+{% load static %}
+{% load custom_filters %}
+{% block title %}Race Team Selection{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Race Details Header -->
+    <div class="card">
+        <div class="card-header text-center">
+            <h2>{{ race.template.name }} - {{ race.template.date|date:"F j, Y" }}</h2>
+            <p class="mb-0"><strong>Location:</strong> {{ race.template.location }} - {{ race.template.circuit }}</p>
+        </div>
+    </div>
+    <!-- Team Selection Display -->
+    <div class="mt-4">
+        {% if team_selection %}
+        <h3>Your Team Selection for This Race</h3>
+        <ul class="list-group mb-4">
+            {% for driver in team_selection.drivers.all %}
+                <li class="list-group-item">{{ driver.name }} - {{ driver.constructor.name }}</li>
+            {% endfor %}
+        </ul>
+
+        {% if driver_points %}
+        <h4>Driver Performance in Race Sessions</h4>
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Driver</th>
+                    <th>Qualifying Points</th>
+                    {% if has_sprint %}
+                        <th>Sprint Points</th>
+                    {% endif %}
+                    <th>Race Points</th>
+                    <th>Total Points</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for driver_info in driver_points %}
+                <tr>
+                    <td>{{ driver_info.driver.name }}</td>
+                    <td>{{ driver_info.points_breakdown.Qualifying|default:0 }}</td>
+                    {% if has_sprint %}
+                        <td>{{ driver_info.points_breakdown.Sprint|default:0 }}</td>
+                    {% endif %}
+                    <td>{{ driver_info.points_breakdown.Race|default:0 }}</td>
+                    <td><strong>{{ driver_info.points_breakdown|sum_points|floatformat:2 }}</strong></td>
+                </tr>
+                {% endfor %}
+
+                <!-- Prediction Points Row -->
+                {% if prediction_answer and prediction_answer.is_correct %}
+                <tr>
+                    <th colspan="{% if has_sprint %}4{% else %}3{% endif %}">Prediction Question Points</th>
+                    <td><strong>{{ prediction_answer.points_earned|floatformat:2 }}</strong></td>
+                </tr>
+                {% endif %}
+
+                <!-- Total Points Row -->
+                <tr>
+                    <th>Total Points</th>
+                    <td>{{ total_qualifying_points }}</td>
+                    {% if has_sprint %}
+                        <td>{{ total_sprint_points }}</td>
+                    {% endif %}
+                    <td>{{ total_race_points }}</td>
+                    <td><strong>{{ total_points_with_prediction|floatformat:2 }}</strong></td>
+                </tr>
+            </tbody>
+        </table>
+        {% endif %}
+        {% else %}
+        <div class="alert alert-warning" role="alert">
+            <p>You have not made a selection for this race yet.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Combined Race Form Section -->
+    <div class="mt-5">
+        {% if not is_past_race %}
+        <h3>Make or Update Your Selection</h3>
+        <form method="post" id="raceForm" class="mt-3">
+            {% csrf_token %}
+
+           <!-- Prediction Question Section -->
+            {% if prediction_question %}
+            <h4>Prediction Question</h4>
+            <div class="form-group">
+                {% if form.prediction_answer %}
+                    <label for="{{ form.prediction_answer.id_for_label }}">{{ form.prediction_answer.label }}</label>
+                    {{ form.prediction_answer }}
+                {% else %}
+                    <p>No prediction question available for this race.</p>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <!-- Tier 1 Driver Select with Prices -->
+            <h4>Team Selection</h4>
+            <div class="form-group">
+                <label for="id_tier_1_driver"><strong>Select a Tier 1 Driver</strong></label>
+                <select name="tier_1_driver" id="id_tier_1_driver" class="form-control" data-tier="1">
+                    <option value="">Select a driver</option>
+                    {% for driver in form.fields.tier_1_driver.queryset %}
+                        {% with usage=tier_1_usage|get_item:driver.id %}
+                        <option value="{{ driver.id }}" data-price="{{ driver.price }}"
+                            {% if usage and usage >= 3 %}disabled{% endif %}
+                            {% if driver.id == form.initial.tier_1_driver.id|default:None %}selected{% endif %}>
+                            {{ driver.name }} - ${{ driver.price }}M
+                            {% if usage and usage >= 3 %}(Unavailable){% endif %}
+                        </option>
+                        {% endwith %}
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Tier 2 Drivers Checkbox with Prices -->
+            <div class="form-group mt-3">
+                <label><strong>Select Tier 2 Drivers</strong></label>
+                <div class="form-check">
+                    {% for driver in form.fields.tier_2_drivers.queryset %}
+                    <div class="form-check">
+                        <input type="checkbox" name="tier_2_drivers" value="{{ driver.id }}" data-price="{{ driver.price }}"
+                        class="form-check-input tier-2-driver" id="driver-{{ driver.id }}"
+                        {% if driver.id in form.initial.tier_2_drivers|default_if_none:"" %}checked{% endif %}>
+                        <label class="form-check-label" for="driver-{{ driver.id }}">
+                            {{ driver.name }} - ${{ driver.price }}M
+                        </label>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="mt-4">
+                <button type="submit" id="submitBtn" class="btn btn-primary btn-block">Submit Selection</button>
+            </div>
+        </form>
+        {% endif %}
+    </div>
+
+    
+</div>
+
+<script src="{% static 'js/team_selection.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,22 @@
+{% extends 'league/base.html' %}
+{% block title %}{{ league.name }} Leaderboard{% endblock %}
+
+{% block content %}
+<h1>{{ league.name }} - {{ leaderboard_type }}</h1>
+
+<table>
+    <tr>
+        <th>Position</th>
+        <th>Team Name</th>
+        <th>Points</th>
+    </tr>
+    {% for team in leaderboard %}
+    <tr>
+        <td>{{ forloop.counter }}</td>
+        <td>{{ team.team_name }}</td>
+        <td>{{ team.points }}</td>
+    </tr>
+    {% endfor %}
+</table>
+
+{% endblock %}

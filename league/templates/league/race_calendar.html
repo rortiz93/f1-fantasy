@@ -1,0 +1,42 @@
+{% extends 'league/base.html' %}
+
+{% block title %}{{ league.name }} Race Calendar{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1><a href="{% url 'league' league.id %}">{{ league.name }}</a> - {{ league.season }} Season Race Calendar</h1>
+    
+    <table class="table table-striped mt-4">
+        <thead>
+            <tr>
+                <th>Race</th>
+                <th>Date</th>
+                <th>Location</th>
+                <th>Circuit</th>
+                {% if user.is_authenticated %}
+                    <th>Action</th>
+                {% endif %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for race_info in races %}
+                <tr>
+                    <td><a href="">
+                        {{ race_info.template.name }}
+                    </a></td>
+                    <td>{{ race_info.template.date|date:"F j, Y" }}</td>
+                    <td>{{ race_info.template.location }}</td>
+                    <td>{{ race_info.template.circuit }}</td>
+                    {% if user.is_authenticated and team and race_info.race %}
+                        <td>
+                            <a href="{% url 'race_selection' league_id=league.id team_id=team.id pk=race_info.race.id %}" class="btn btn-primary btn-sm">View/Set Lineup</a>
+                        </td>
+                    {% else %}
+                        <td>Race not available</td>
+                    {% endif %}
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

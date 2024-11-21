@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    command: gunicorn --bind 0.0.0.0:8000 f1_fantasy.wsgi:application
+    volumes:
+      - .:/app
+      - static_volume:/app/staticfiles
+    working_dir: /app  # Set to the project root
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    environment:
+      - DEBUG=0
+      - DJANGO_SECRET_KEY=_*&0qso3sih33*@cjj%se#1-$xj2!wnwwr+3862hn6m4n8(yv5
+      - ALLOWED_HOSTS=localhost,your_domain.com
+      - DATABASE_URL=postgres://admin:Neural%23123@db:5432/f1_fantasy
+      - STATIC_ROOT=/app/staticfiles
+      - PYTHONPATH=/app
+      - DJANGO_SETTINGS_MODULE=f1_fantasy.settings
+
+  db:
+    image: postgres:13
+    environment:
+      - POSTGRES_DB=f1_fantasy
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=Neural#123
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+  nginx:
+    build:
+      context: .
+      dockerfile: Dockerfile.nginx  # Nginx Dockerfile
+    ports:
+      - "80:80"
+    volumes:
+      - static_volume:/app/static  # Access static files from Django
+    depends_on:
+      - web
+
+volumes:
+  postgres_data:
+  static_volume:
