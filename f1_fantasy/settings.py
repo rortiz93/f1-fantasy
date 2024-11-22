@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-bnm_8b=u-97yw4=eqy&t%4#f6*lmqf!yml%80%s0t96h@u8v$^
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1' , '10.0.0.233', 'f1.ortiz-media.com']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1' ,'10.0.0.118',  '10.0.0.233', 'f1.ortiz-media.com', 'dev-f1.ortiz-media.com']
 
 
 # Application definition
@@ -145,5 +145,6 @@ LOGOUT_REDIRECT_URL = 'home'  # Redirect to the home page after logout
 
 LOGIN_URL = 'login'
 CSRF_TRUSTED_ORIGINS = [
-    'https://f1.ortiz-media.com'
+    'https://f1.ortiz-media.com',
+    'https://dev-f1.ortiz-media.com'
 ]
