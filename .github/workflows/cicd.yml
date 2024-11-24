@@ -13,7 +13,11 @@ jobs:
     steps:
       - name: Check out the code
         uses: actions/checkout@v3
-      
+      - name: Debug SSH Environment
+        run: |
+          echo "IP Address: ${{ secrets.DEV_LXC_IP }}"
+          echo "SSH Key Content: $(head -n 2 ~/.ssh/id_ed25519)"  # Only show the first two lines for security
+          ssh-keyscan -H ${{ secrets.DEV_LXC_IP }}
       - name: Set up SSH for Dev
         run: |
           set -x
