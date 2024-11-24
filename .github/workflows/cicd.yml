@@ -21,13 +21,19 @@ jobs:
           chmod 600 ~/.ssh/id_ed25519_dev
           ssh-keyscan -H "${{ secrets.DEV_LXC_IP }}" >> ~/.ssh/known_hosts
 
-      - name: Debug SSH Key
+      - name: Debug SSH Configuration
         run: |
           echo "IP Address: ${{ secrets.DEV_LXC_IP }}"
           echo "Checking SSH Key Directory:"
           ls -la ~/.ssh
+          echo "Checking Known Hosts File:"
+          cat ~/.ssh/known_hosts
           echo "Preview SSH Key Content:"
           head -n 5 ~/.ssh/id_ed25519_dev
+
+      - name: Test SSH Connection
+        run: |
+          ssh -i ~/.ssh/id_ed25519_dev -o StrictHostKeyChecking=no root@${{ secrets.DEV_LXC_IP }} "echo Connected Successfully"
 
       - name: Deploy to Dev
         run: |
