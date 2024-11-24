@@ -13,13 +13,17 @@ jobs:
     steps:
       - name: Check out the code
         uses: actions/checkout@v3
-
+      - name: Debug SSH Setup
+        run: |
+          ls -l ~/.ssh
+          cat ~/.ssh/known_hosts
       - name: Set up SSH for Dev
         run: |
+          set -x
           mkdir -p ~/.ssh
           echo "${{ secrets.DEV_LXC_SSH_KEY }}" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -H ${{ secrets.DEV_LXC_IP }} >> ~/.ssh/known_hosts
+          ssh-keyscan -H "${{ secrets.DEV_LXC_IP }}" >> ~/.ssh/known_hosts
 
       - name: Deploy to Dev
         run: |
