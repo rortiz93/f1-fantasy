@@ -13,10 +13,7 @@ jobs:
     steps:
       - name: Check out the code
         uses: actions/checkout@v3
-      - name: Debug SSH Setup
-        run: |
-          ls -l ~/.ssh
-          cat ~/.ssh/known_hosts
+      
       - name: Set up SSH for Dev
         run: |
           set -x
