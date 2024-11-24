@@ -11,7 +11,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth import logout
 from django.shortcuts import redirect
 from django.views.generic import ListView, DetailView
-from .utils import calculate_driver_performance, calculate_driver_session_points, calculate_total_driver_points 
+from .utils import calculate_driver_performance, calculate_driver_session_points, calculate_total_driver_points, calculate_team_points, calculate_session_points
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 
@@ -300,12 +300,43 @@ def league_view(request, league_id):
     # Get drivers with price and tier for the table
     drivers = Driver.objects.all().order_by('-price')
 
+    # Calculate points for the latest race
+    latest_race = Race.objects.filter(league=league, template__date__lt=timezone.now().date()).order_by('-template__date').first()
+    latest_race_points = []
+    if latest_race:
+        calculate_team_points(latest_race)
+        team_selections = TeamSelection.objects.filter(race=latest_race)
+        for selection in team_selections:
+            driver_points = []
+            for driver in selection.drivers.all():
+                points_breakdown = {}
+                total_driver_points = Decimal('0.0')
+                for session_type in ['Qualifying', 'Sprint', 'Race']:
+                    result = RaceResult.objects.filter(race=latest_race, driver=driver, session_type=session_type).first()
+                    session_points = calculate_session_points(result, driver, session_type, latest_race)
+                    points_breakdown[session_type] = session_points
+                    total_driver_points += session_points
+                driver_points.append({
+                    'name': driver.name,
+                    'constructor': driver.constructor.name,
+                    'points': total_driver_points,
+                    'breakdown': points_breakdown,
+                })
+            latest_race_points.append({
+                'team_name': selection.team.name,
+                'points': selection.points,
+                'drivers': driver_points,
+            })
+     # Sort latest race by total points in descending order
+    latest_race_points.sort(key=lambda x: x['points'], reverse=True)
     return render(request, 'league/league.html', {
         'league': league,
         'user_team': user_team,
         'leaderboard': leaderboard_data,
         'top_drivers': top_drivers_data,
         'drivers': drivers,
+        'latest_race_points': latest_race_points,
+        'latest_race_name': latest_race.template.name if latest_race else None,
     })
     
 
