@@ -16,14 +16,14 @@ jobs:
       - name: Debug SSH Environment
         run: |
           echo "IP Address: ${{ secrets.DEV_LXC_IP }}"
-          echo "SSH Key Content: $(head -n 2 ~/.ssh/id_ed25519)"  # Only show the first two lines for security
+          echo "SSH Key Content: $(head -n 2 ~/.ssh/id_ed25519_dev)"  # Only show the first two lines for security
           ssh-keyscan -H ${{ secrets.DEV_LXC_IP }}
       - name: Set up SSH for Dev
         run: |
           set -x
           mkdir -p ~/.ssh
-          echo "${{ secrets.DEV_LXC_SSH_KEY }}" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
+          echo "${{ secrets.DEV_LXC_SSH_KEY }}" > ~/.ssh/id_ed25519_dev
+          chmod 600 ~/.ssh/id_ed25519_dev
           ssh-keyscan -H "${{ secrets.DEV_LXC_IP }}" >> ~/.ssh/known_hosts
 
       - name: Deploy to Dev
