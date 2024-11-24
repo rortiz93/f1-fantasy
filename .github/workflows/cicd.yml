@@ -13,23 +13,26 @@ jobs:
     steps:
       - name: Check out the code
         uses: actions/checkout@v3
-      - name: Debug SSH Environment
-        run: |
-          echo "IP Address: ${{ secrets.DEV_LXC_IP }}"
-          printf "SSH Key Content: $(head -n 2 ~/.ssh/id_ed25519_dev)"  # Only show the first two lines for security
-          ssh-keyscan -H ${{ secrets.DEV_LXC_IP }}
+
       - name: Set up SSH for Dev
         run: |
-          set -x
           mkdir -p ~/.ssh
-          printf "%s" "${{ secrets.DEV_LXC_SSH_KEY }}" > ~/.ssh/id_ed25519_dev
+          printf "%s\n" "${{ secrets.DEV_LXC_SSH_KEY }}" > ~/.ssh/id_ed25519_dev
           chmod 600 ~/.ssh/id_ed25519_dev
           ssh-keyscan -H "${{ secrets.DEV_LXC_IP }}" >> ~/.ssh/known_hosts
 
+      - name: Debug SSH Key
+        run: |
+          echo "IP Address: ${{ secrets.DEV_LXC_IP }}"
+          echo "Checking SSH Key Directory:"
+          ls -la ~/.ssh
+          echo "Preview SSH Key Content:"
+          head -n 5 ~/.ssh/id_ed25519_dev
+
       - name: Deploy to Dev
         run: |
-          ssh root@${{ secrets.DEV_LXC_IP }} "cd /f1-fantasy && git pull origin dev && docker-compose down && docker-compose up -d"
-
+          ssh -i ~/.ssh/id_ed25519_dev root@${{ secrets.DEV_LXC_IP }} "cd /f1-fantasy && docker-compose up -d"
+          
   deploy-prod:
     runs-on: ubuntu-latest
     needs: deploy-dev
