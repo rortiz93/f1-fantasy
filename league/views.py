@@ -393,7 +393,7 @@ class RaceDetailView(LoginRequiredMixin, DetailView):
             prediction_answer_instance=prediction_answer,
             initial={
                 'tier_1_driver': team_selection.drivers.filter(tier=1).first() if team_selection else None,
-                'tier_2_drivers': team_selection.drivers.filter(tier=2) if team_selection else [],
+                'tier_2_drivers': list(team_selection.drivers.filter(tier=2).values_list('id', flat=True)) if team_selection else [],
                 'prediction_answer': prediction_answer.answer if prediction_answer else None,
             },
         )

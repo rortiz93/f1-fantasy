@@ -124,7 +124,7 @@
                     <div class="form-check">
                         <input type="checkbox" name="tier_2_drivers" value="{{ driver.id }}" data-price="{{ driver.price }}"
                         class="form-check-input tier-2-driver" id="driver-{{ driver.id }}"
-                        {% if driver.id in form.initial.tier_2_drivers|default_if_none:"" %}checked{% endif %}>
+                        {% if driver.id in form.initial.tier_2_drivers %}checked{% endif %}>
                         <label class="form-check-label" for="driver-{{ driver.id }}">
                             {{ driver.name }} - ${{ driver.price }}M
                         </label>
