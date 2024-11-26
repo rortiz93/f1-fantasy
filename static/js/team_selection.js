@@ -32,7 +32,7 @@ document.addEventListener("DOMContentLoaded", function () {
         });
 
         // Determine maximum Tier 2 drivers allowed
-        const maxTier2Drivers = selectedTier1Driver === "NA" ? 5 : 4;
+        const maxTier2Drivers = selectedTier1Driver === "NA - $0M" ? 5 : 4;
 
         // Display warnings and disable submit button if conditions are not met
         if (selectedTier2Count > maxTier2Drivers) {
