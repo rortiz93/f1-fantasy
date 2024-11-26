@@ -6,7 +6,7 @@ services:
     command: gunicorn --bind 0.0.0.0:8000 f1_fantasy.wsgi:application
     volumes:
       - .:/app
-      - static_volume:/app/staticfiles
+      - static_volume:/app/static
     working_dir: /app  # Set to the project root
     ports:
       - "8000:8000"
