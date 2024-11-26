@@ -68,7 +68,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         // Ensure no more than allowed Tier 2 drivers are selected
-        const maxTier2Drivers = selectedTier1Driver === "NA" ? 5 : 4;
+        const maxTier2Drivers = selectedTier1Driver === "NA - $0M" ? 5 : 4;
         const selectedTier2Count = Array.from(tier2DriverCheckboxes).filter(cb => cb.checked).length;
 
         if (selectedTier2Count > maxTier2Drivers) {
