@@ -22,7 +22,8 @@ class TeamSelectionForm(forms.ModelForm):
     tier_1_driver = forms.ModelChoiceField(
         queryset=Driver.objects.filter(tier=1),
         label="Select a Tier 1 Driver",
-        widget=forms.Select(attrs={'class': 'form-control'})
+        widget=forms.Select(attrs={'class': 'form-control'}),
+        required=False
     )
     tier_2_drivers = forms.ModelMultipleChoiceField(
         queryset=Driver.objects.filter(tier=2),
@@ -79,8 +80,17 @@ class TeamSelectionForm(forms.ModelForm):
         # Validate budget cap
         if total_cost > 20:
             raise forms.ValidationError("Total cost of drivers exceeds the $20M salary cap.")
-        if len(tier_2_drivers) > 4:
-            raise forms.ValidationError("You can select up to four Tier 2 drivers.")
+        # Ensure at least one driver is selected
+        if not tier_1_driver and not tier_2_drivers:
+            raise forms.ValidationError("You must select at least one driver.")
+
+        # Validate Tier 2 driver limit
+        if tier_1_driver and tier_1_driver.name == "NA":
+            if len(tier_2_drivers) > 5:
+                raise forms.ValidationError("You can select up to 5 Tier 2 drivers when 'NA' is selected.")
+        else:
+            if len(tier_2_drivers) > 4:
+                raise forms.ValidationError("You can select up to 4 Tier 2 drivers.")
 
       
 
