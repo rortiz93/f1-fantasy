@@ -445,6 +445,7 @@ class RaceDetailView(LoginRequiredMixin, DetailView):
 
         # Handle prediction answer submission if form is submitted
         prediction_question = PredictionQuestion.objects.filter(race=race).first()
+        prediction_answer = None
         if prediction_question:
             prediction_answer = PredictionAnswer.objects.filter(
                 team=team, prediction_question=prediction_question
@@ -471,7 +472,16 @@ class RaceDetailView(LoginRequiredMixin, DetailView):
             
         )
         if form.is_valid():
-            form.save()  # Save the form to update or create the lineup
+            form.save()  # Save the form to update or create the 
+            # Add a success message depending on whether a prediction question exists
+            if not prediction_question:
+                messages.success(
+                    request,
+                    "Your lineup has been submitted successfully! A prediction question will be added later. "
+                    "Please revisit this page to submit an updated lineup."
+                )
+            else:
+                messages.success(request, "Your lineup has been submitted successfully!")
             return redirect('race_selection', league_id=league_id, team_id=team_id, pk=race.pk)  # Redirect to the same page after saving
 
         # If the form is invalid, re-render the page with errors
