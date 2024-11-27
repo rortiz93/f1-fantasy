@@ -106,7 +106,7 @@ class HistoricalConstructorStanding(models.Model):
     
 class PredictionQuestion(models.Model):
     race = models.OneToOneField(Race, on_delete=models.CASCADE, related_name='prediction_question')
-    question_text = models.CharField(max_length=255)
+    question_text = models.TextField()
     question_type = models.CharField(max_length=50, choices=[('text', 'Text'), ('multiple_choice', 'Multiple Choice')])
     options = models.JSONField(blank=True, null=True)  # Only for multiple-choice questions
     points_awarded = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal('5.0'))

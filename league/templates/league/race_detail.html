@@ -99,7 +99,7 @@
             <h4>Prediction Question</h4>
             <div class="form-group">
                 {% if form.prediction_answer %}
-                    <label for="{{ form.prediction_answer.id_for_label }}">{{ form.prediction_answer.label }}</label>
+                    <label for="{{ form.prediction_answer.id_for_label }}">{{ form.prediction_answer.label|safe}}</label>
                     {{ form.prediction_answer }}
                 {% else %}
                     <p>No prediction question available for this race.</p>
