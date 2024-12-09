@@ -309,6 +309,8 @@ def league_view(request, league_id):
         for selection in team_selections:
             driver_points = []
             for driver in selection.drivers.all():
+                if driver.name == "NA":
+                    continue
                 points_breakdown = {}
                 total_driver_points = Decimal('0.0')
                 for session_type in ['Qualifying', 'Sprint', 'Race']:
@@ -393,11 +395,12 @@ class RaceDetailView(LoginRequiredMixin, DetailView):
             prediction_answer_instance=prediction_answer,
             initial={
                 'tier_1_driver': team_selection.drivers.filter(tier=1).first() if team_selection else None,
-                'tier_2_drivers': list(team_selection.drivers.filter(tier=2).values_list('id', flat=True)) if team_selection else [],
+                'tier_2_drivers': list(team_selection.drivers.filter(tier=2, isActive=True).values_list('id', flat=True)) if team_selection else [],
                 'prediction_answer': prediction_answer.answer if prediction_answer else None,
             },
         )
-
+        # Debug the queryset
+        print("Tier 2 Drivers Queryset:", form.fields['tier_2_drivers'].queryset)
         context.update({
             'form': form,
             'prediction_question': prediction_question,
