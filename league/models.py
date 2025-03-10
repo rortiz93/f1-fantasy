@@ -2,12 +2,14 @@ from django.contrib.auth.models import User  # Django's built-in user model
 from django.db import models
 from decimal import Decimal
 from django.db.models import Sum
+from django.utils.timezone import now
+
 
 class League(models.Model):
     name = models.CharField(max_length=100)
     season = models.IntegerField()
     users = models.ManyToManyField(User, related_name="leagues")  # New field for users in a league
-
+    isOpen = models.BooleanField(default=True)
    
     def __str__(self):
         return f"{self.name} - {self.season}"
@@ -16,7 +18,14 @@ class Team(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="teams")
     league = models.ForeignKey(League, on_delete=models.CASCADE, related_name="leagues")
     name = models.CharField(max_length=100)
-    
+    mulligan_active = models.BooleanField(default=False)
+    overdrive_active = models.BooleanField(default=False)
+    overdrive_driver = models.ForeignKey(
+        'Driver', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='overdrive_driver', help_text='Driver selected for overdrive'
+    )
+    overdrive_round = models.IntegerField(null=True, blank=True)
+   
     class Meta:
         unique_together = ('user', 'league') 
     def __str__(self):
@@ -29,7 +38,8 @@ class RaceTemplate(models.Model):
     season = models.IntegerField(default=2024)  # For example, the 2024 season
     round = models.IntegerField()  # The round of the race in the season
     circuit = models.CharField(max_length=300, blank=True, null=True)
-
+    qualifying_start_time = models.DateTimeField(null=True, blank=True)
+    first_practice_start_time = models.DateTimeField(null=True, blank=True)
     class Meta:
         unique_together = ('season', 'round')  # Ensures unique race templates per season and round
 
@@ -39,6 +49,7 @@ class Race(models.Model):
     template = models.ForeignKey(RaceTemplate, on_delete=models.CASCADE, blank=True, null=True,related_name="races")
     league = models.ForeignKey(League, on_delete=models.CASCADE,blank=True, null=True, related_name="races")
     lineup_deadline = models.DateTimeField(blank=True, null=True)
+    mulligan_deadline = models.DateTimeField(blank=True, null=True)
 
     def __str__(self):
         return f"{self.template.name} - {self.template.season} ({self.league.name})"
@@ -51,7 +62,15 @@ class Constructor(models.Model):
         return self.name
 
 
-    
+class MulliganUsage(models.Model):
+    team = models.ForeignKey('Team', on_delete=models.CASCADE, related_name='mulligan_usages')
+    date_used = models.DateTimeField(default=now)
+    season_half = models.PositiveSmallIntegerField()  # 1 for first half, 2 for second half
+
+    class Meta:
+        # Ensure unique usage per team and season half
+        unique_together = ('team', 'season_half')
+
 class Driver(models.Model):
 
     driver_id = models.CharField(max_length=100, unique=True, null=True, blank=True)
@@ -124,3 +143,17 @@ class PredictionAnswer(models.Model):
 
     def __str__(self):
         return f"{self.team.name} - {self.prediction_question.race.template.name}"
+
+
+
+class OverdriveUsage(models.Model):
+    team = models.ForeignKey('Team', on_delete=models.CASCADE, related_name='overdrive_usages')
+    driver = models.ForeignKey(
+        'Driver', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='overdrive_usage_driver'
+    )
+    season = models.PositiveIntegerField()
+    date_used = models.DateTimeField(default=now)
+
+    class Meta:
+        unique_together = ('team', 'season')

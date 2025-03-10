@@ -1,0 +1,13 @@
+{% extends 'league/base.html' %}
+
+{% block title %}Home{% endblock %}
+
+{% block content %}
+<h3>Create Your Team for {{ league.name }}</h3>
+<form method="post">
+    {% csrf_token %}
+    <label for="team_name">Team Name:</label>
+    <input type="text" id="team_name" name="team_name" required>
+    <button type="submit">Create Team</button>
+</form>
+{% endblock %}

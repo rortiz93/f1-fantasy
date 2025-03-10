@@ -148,7 +148,7 @@ def calculate_driver_performance(driver, league):
 import requests
 from .models import Race, Driver, RaceResult
 
-ERGAST_BASE_URL = "https://ergast.com/api/f1"
+ERGAST_BASE_URL = "https://api.jolpi.ca/ergast/f1/"
 
 def fetch_driver_race_results(season=2024):
     """
@@ -339,3 +339,9 @@ def calculate_total_driver_points(past_selections, total_prediction_points=Decim
         'driver_points': driver_points,
         'team_total_points': team_total_points
     }
+
+
+def determine_current_season_half(current_race_round, total_races=24):
+    """Determines the current season half (1 or 2) based on race round and total number of races."""
+    halfway_point = total_races // 2
+    return 1 if current_race_round <= halfway_point else 2

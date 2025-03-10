@@ -1,17 +1,20 @@
 from django.contrib.auth.forms import UserCreationForm
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
 from django.shortcuts import get_object_or_404, render, redirect
 from django.contrib.auth.views import LoginView
 from django.contrib.auth import login
 from django import forms
 from .forms import TeamSelectionForm, PredictionAnswerForm
 from django.utils import timezone
-from .models import Race, TeamSelection,RaceResult, Driver, League, Team, RaceTemplate, PredictionQuestion, PredictionAnswer
+from .models import Race, TeamSelection,RaceResult, Driver, League, Team, RaceTemplate, PredictionQuestion, PredictionAnswer, MulliganUsage, OverdriveUsage
 from django.db.models import Sum, Count
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import logout
 from django.shortcuts import redirect
 from django.views.generic import ListView, DetailView
-from .utils import calculate_driver_performance, calculate_driver_session_points, calculate_total_driver_points, calculate_team_points, calculate_session_points
+from .utils import calculate_driver_performance, calculate_driver_session_points, calculate_total_driver_points, calculate_team_points, calculate_session_points, determine_current_season_half
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 
@@ -44,6 +47,10 @@ def home_view(request):
         }
         for league in leagues
     ]
+    # If no leagues are found, suggest open leagues
+    open_leagues = None
+    if not leagues.exists():
+        open_leagues = League.objects.filter(isOpen=True)  # or use the is_open method
 
      # Find the next race based on RaceTemplate's date across all user's leagues
     next_race = (
@@ -56,6 +63,7 @@ def home_view(request):
 
     return render(request, 'league/home.html', {
         'leagues_with_teams': leagues_with_teams,
+        'open_leagues': open_leagues,
         'next_race': next_race,
     })
 
@@ -359,9 +367,27 @@ class RaceDetailView(LoginRequiredMixin, DetailView):
         
         league_id = self.kwargs.get('league_id')
         team_id = self.kwargs.get('team_id')
+        race = self.object
         context['league_id'] = league_id
         context['team_id'] = team_id
-        race = self.object
+        current_time = timezone.now()
+        lineup_deadline = race.lineup_deadline
+        mulligan_deadline = race.mulligan_deadline
+        team = get_object_or_404(Team, id=self.kwargs['team_id'])
+        current_season_half = determine_current_season_half(1)
+        mulligans_used = MulliganUsage.objects.filter(team=team, season_half=current_season_half).count()
+        overdrives_used = OverdriveUsage.objects.filter(team=team).count()
+
+        context['has_overdrive_available'] = (overdrives_used < 1)
+        
+        context['has_mulligan_available'] = (mulligans_used < 1)
+        context['is_mulligan_window_open'] = (lineup_deadline <= current_time <= mulligan_deadline)
+        context['is_after_lineup_deadline'] = timezone.now() > lineup_deadline
+        context['is_before_mulligan_deadline'] = timezone.now() < self.object.mulligan_deadline
+       
+        # Add the lineup deadline to the context
+        context['lineup_deadline'] = self.object.lineup_deadline
+        
         # Initialize prediction_form to avoid referencing before assignment
         prediction_form = None
          # Fetch prediction question and answer
@@ -395,7 +421,7 @@ class RaceDetailView(LoginRequiredMixin, DetailView):
             prediction_answer_instance=prediction_answer,
             initial={
                 'tier_1_driver': team_selection.drivers.filter(tier=1).first() if team_selection else None,
-                'tier_2_drivers': list(team_selection.drivers.filter(tier=2, isActive=True).values_list('id', flat=True)) if team_selection else [],
+                'tier_2_drivers': list(team_selection.drivers.filter(tier=2).values_list('id', flat=True)) if team_selection else [],
                 'prediction_answer': prediction_answer.answer if prediction_answer else None,
             },
         )
@@ -477,6 +503,14 @@ class RaceDetailView(LoginRequiredMixin, DetailView):
         if form.is_valid():
             form.save()  # Save the form to update or create the 
             # Add a success message depending on whether a prediction question exists
+             # Check if mulligan is active
+            if team.mulligan_active:
+                current_season_half = determine_current_season_half(race.template.round)
+                # Register mulligan usage
+                MulliganUsage.objects.create(team=team, season_half=current_season_half)
+                # Reset the flag
+                team.mulligan_active = False
+                team.save()
             if not prediction_question:
                 messages.success(
                     request,
@@ -491,3 +525,70 @@ class RaceDetailView(LoginRequiredMixin, DetailView):
         context = self.get_context_data()
         context['form'] = form
         return self.render_to_response(context)
+
+@login_required
+def join_league(request, league_id):
+    league = get_object_or_404(League, id=league_id)
+    # Add the user to the league
+    league.users.add(request.user)
+    league.save()
+    return redirect('create_team', league_id=league.id)
+
+@login_required
+def create_team(request, league_id):
+    league = get_object_or_404(League, id=league_id)
+    if request.method == 'POST':
+        team_name = request.POST.get('team_name')
+        if team_name:
+            if Team.objects.filter(league=league, name=team_name).exists():
+                messages.error(request, "A team with this name already exists in the league.")
+                return render(request, 'league/create_team.html', {'league': league})
+            # Check if the user already has a team in this league
+            existing_team = Team.objects.filter(user=request.user, league=league).exists()
+            if not existing_team:
+                # Create the team
+                team = Team.objects.create(
+                    name=team_name,
+                    user=request.user,
+                    league=league
+                )
+                messages.success(request, "Your team has been created successfully!")
+                return redirect('home_view')
+            else:
+                messages.error(request, "You already have a team in this league.")
+                return redirect('home_view')
+    return render(request, 'league/create_team.html', {'league': league})
+@csrf_exempt
+def activate_mulligan(request, league_id, team_id):
+    if request.method == "POST":
+        team = get_object_or_404(Team, id=team_id)
+        if team.mulligan_active == False:
+
+            team.mulligan_active = True
+            team.save()
+            return JsonResponse({"status": "success", "message": "Mulligan activated. Submit lineup changes before the deadline."})
+        else: 
+            team.mulligan_active = False
+            team.save()
+            return JsonResponse({"status": "success", "message": "Mulligan deactivated."})
+       
+    
+    return JsonResponse({"status": "error", "message": "Invalid request method"})
+
+def activate_overdrive(request, league_id, team_id):
+    if request.method == "POST":
+        team = get_object_or_404(Team, id=team_id)
+        # Set the overdrive flag to true
+        team.overdrive_active = True
+        team.save()
+        return JsonResponse({"status": "success", "message": "Overdrive activated! Select a Tier 2 driver for overdrive."})
+    return JsonResponse({"status": "error", "message": "Invalid request method"})
+
+def set_overdrive_driver(request, league_id, team_id):
+    if request.method == "POST":
+        team = get_object_or_404(Team, id=team_id)
+        # Set the overdrive flag to true
+        #team.overdrive_active = True
+        #team.save()
+        return JsonResponse({"status": "success", "message": "Overdrive activated! Select a Tier 2 driver for overdrive."})
+    return JsonResponse({"status": "error", "message": "Invalid request method"})

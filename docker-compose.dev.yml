@@ -20,6 +20,7 @@ services:
       - STATIC_ROOT=/app/staticfiles
       - PYTHONPATH=/app
       - DJANGO_SETTINGS_MODULE=f1_fantasy.settings
+      - PYTHONUNBUFFERED=1
 
   db:
     image: postgres:13

@@ -8,20 +8,78 @@
     <!-- Race Details Header -->
     <div class="card">
         <div class="card-header text-center">
+       
             <h2>{{ race.template.name }} - {{ race.template.date|date:"F j, Y" }}</h2>
             <p class="mb-0"><strong>Location:</strong> {{ race.template.location }} - {{ race.template.circuit }}</p>
+            <p class="mt-2">
+                <strong>Lineup Deadline:</strong> 
+                {{ race.lineup_deadline|date:"F j, Y, g:i A" }} (ET)
+            </p>
         </div>
     </div>
-    {% if messages %}
-        <div class="messages">
-            {% for message in messages %}
-            <div class="alert alert-{{ message.tags }}">
-                {{ message }}
+   
+    
+    <!-- Power Ups Section -->
+    <div class="mt-5" id="mulligan-container" data-league-id="{{ league_id }}" data-team-id="{{ team_id }}">
+        <h3>Power Ups <i id="infoIcon" class="info-icon" style="cursor: pointer; margin-left: 8px;" title="Click for more information">ℹ️</i></h3>
+        
+        
+        <div id="infoPopup" class="info-popup" style="display: none;">
+            <div class="popup-content">
+                <h4>Power Ups Details</h4>
+                <p><strong>Mulligan:</strong> Allows you to make adjustments to your lineup after the initial submission deadline and before the mulligan deadline (1 hour prior to quali). Activate it to get more flexibility with your team selection. This can be used once per half of the season.</p>
+                <p><strong>Overdrive:</strong> Assigns a Tier 2 driver that you would like to get 3x points the entire race weekend. Choose wisely, as this can significantly impact your total score. You only can use this once per season</p>
+                <button id="closeInfoPopup" class="btn btn-secondary">Close</button>
             </div>
-            {% endfor %}
         </div>
-    {% endif %}
-    <div id="max-drivers-warning" class="text-danger mt-2"></div>
+        <div  id="mulliganMessage" ></div>
+        {% if team.mulligan_active %}
+            <div class="alert alert-info">
+                Mulligan in Use - You can adjust your lineup until the mulligan deadline.
+            </div>
+            
+        {% endif %}
+        {% if has_mulligan_available and is_mulligan_window_open %}
+            <!-- Show the option to use the mulligan -->
+            <button type="button" id="useMulliganBtn" class="btn btn-primary">Use Mulligan</button>
+        {% elif has_mulligan_available and not is_mulligan_window_open %}
+            <!-- Inform the user they must wait for the correct time window -->
+            <p>Your mulligan will be available after the lineup deadline.</p>
+        {% elif not has_mulligan_available %}
+            <!-- Inform the user they've already used their mulligan -->
+            <p>You’ve already used your mulligan for this half.</p>
+        {% endif %}
+
+        {% if has_overdrive_available  %}
+            <!-- Show the option to use the overdrive -->
+            <button type="button" id="useOverdriveBtn" class="btn btn-primary">Use Overdrive</button>
+            {% if team.overdrive_active %}
+                <div id="overdrive-driver-container">
+                    <label for="overdriveDriverSelect">Select Overdrive Driver:</label>
+                    <select id="overdriveDriverSelect">
+                        <!-- Options populated dynamically -->
+                    </select>
+                    <button id="confirmOverdriveDriverBtn">Confirm Overdrive Driver</button>
+                    <div id="overdriveDriverMessage"></div>
+                    <div id="overdrive-row">
+                        <h4>Select Overdrive Driver</h4>
+                        <!-- This row will be shown dynamically -->
+                        <div>
+                            <select id="overdriveDriverSelect"></select>
+                            <button id="confirmOverdriveDriverBtn">Confirm Overdrive Driver</button>
+                            <div id="overdriveDriverMessage"></div>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        
+        {% elif not has_overdrive_available %}
+            <!-- Inform the user they've already used their overdrive -->
+            <p>You’ve already used your overdrive for this season.</p>
+        {% endif %}
+    </div>
+
+   
     <!-- Team Selection Display -->
     <div class="mt-4">
         {% if team_selection %}
@@ -114,6 +172,16 @@
 
             <!-- Tier 1 Driver Select with Prices -->
             <h4>Team Selection</h4>
+            <div id="max-drivers-warning" class="text-danger mt-2"></div>
+            {% if messages %}
+                <div class="messages">
+                    {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }}">
+                        {{ message }}
+                    </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
             <div class="form-group">
                 <label for="id_tier_1_driver"><strong>Select a Tier 1 Driver</strong></label>
                 <select name="tier_1_driver" id="id_tier_1_driver" class="form-control" data-tier="1">
@@ -159,5 +227,10 @@
     
 </div>
 
-<script src="{% static 'js/team_selection.js' %}"></script>
+
+<script>
+    const isAfterLineupDeadline = "{{ is_after_lineup_deadline|yesno:'true,false' }}" === "true";
+    const isBeforeMulliganDeadline = "{{ is_before_mulligan_deadline|yesno:'true,false' }}" === "true";
+</script>
+<script src="{% static 'js/team_selection.js' %}?v={{ now|date:'U' }}"></script>
 {% endblock %}

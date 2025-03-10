@@ -1,10 +1,57 @@
 document.addEventListener("DOMContentLoaded", function () {
     const submitBtn = document.getElementById("submitBtn");
+    const useMulliganBtn = document.getElementById("useMulliganBtn");
     const tier1DriverSelect = document.getElementById("id_tier_1_driver");
     const tier2DriverCheckboxes = document.querySelectorAll(".tier-2-driver");
     const budgetLimit = 20; // Budget in millions
     const raceForm = document.getElementById("raceForm");
     const maxDriversWarning = document.getElementById("max-drivers-warning");
+
+    
+    function updateSubmitButtonState() {
+        console.log("Current time:", new Date());
+        console.log("isAfterLineupDeadline:", isAfterLineupDeadline);
+        console.log("isBeforeMulliganDeadline:", isBeforeMulliganDeadline);
+        if (isAfterLineupDeadline && !isBeforeMulliganDeadline) {
+            // After lineup deadline and mulligan window is closed: disable submit button
+            submitBtn.disabled = true;
+        } else if (isAfterLineupDeadline && isBeforeMulliganDeadline) {
+            // After lineup deadline but before mulligan deadline: keep submit disabled until mulligan is used
+            submitBtn.disabled = true;
+        } else {
+            // Before lineup deadline: normal validation applies
+            calculateTotalCostAndValidateDrivers();
+        }
+    }
+
+    function handleMulliganActivation() {
+        fetch("{% url 'activate_mulligan' league_id=league_id team_id=team_id %}", {
+            method: "POST",
+            headers: {
+                "X-CSRFToken": "{{ csrf_token }}",
+                "Content-Type": "application/json"
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === "success") {
+                // Enable submit button since mulligan was successfully used
+                submitBtn.disabled = false;
+            } else {
+                alert(data.message);
+            }
+        })
+        .catch(error => {
+            console.error("Error activating mulligan:", error);
+            alert("Failed to activate mulligan. Please try again.");
+        });
+    }
+
+    if (useMulliganBtn) {
+        useMulliganBtn.addEventListener("click", handleMulliganActivation);
+    }
+
+    updateSubmitButtonState();
 
     if (!raceForm) {
         console.error("Form element 'raceForm' not found!");
@@ -68,7 +115,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         // Ensure no more than allowed Tier 2 drivers are selected
-        const maxTier2Drivers = selectedTier1Driver === "NA" ? 5 : 4;
+        const maxTier2Drivers = selectedTier1Driver === "NA - $0M" ? 5 : 4;
         const selectedTier2Count = Array.from(tier2DriverCheckboxes).filter(cb => cb.checked).length;
 
         if (selectedTier2Count > maxTier2Drivers) {

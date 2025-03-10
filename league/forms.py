@@ -26,7 +26,7 @@ class TeamSelectionForm(forms.ModelForm):
         required=False
     )
     tier_2_drivers = forms.ModelMultipleChoiceField(
-        queryset=Driver.objects.filter(tier=2),
+        queryset=Driver.objects.filter(tier=2).order_by('-price'),
         label="Select Tier 2 Drivers",
         widget=forms.CheckboxSelectMultiple
     )
@@ -47,10 +47,11 @@ class TeamSelectionForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
 
         # Initialize Tier 1 and Tier 2 driver fields
-        self.fields['tier_1_driver'].queryset = Driver.objects.filter(tier=1)
+        self.fields['tier_1_driver'].queryset = Driver.objects.filter(tier=1).order_by('-price')
         self.fields['tier_1_driver'].label_from_instance = lambda obj: f"{obj.name} - ${obj.price}M"
 
-        self.fields['tier_2_drivers'].queryset = Driver.objects.filter(tier=2)
+        self.fields['tier_2_drivers'].queryset = Driver.objects.filter(tier=2).order_by('-price')
+
         self.fields['tier_2_drivers'].label_from_instance = lambda obj: f"{obj.name} - ${obj.price}M"
 
         # Prepopulate prediction answer if instance exists
@@ -78,8 +79,8 @@ class TeamSelectionForm(forms.ModelForm):
         total_cost += sum(driver.price for driver in tier_2_drivers)
 
         # Validate budget cap
-        if total_cost > 20:
-            raise forms.ValidationError("Total cost of drivers exceeds the $20M salary cap.")
+        if total_cost > 50:
+            raise forms.ValidationError("Total cost of drivers exceeds the $50M salary cap.")
         # Ensure at least one driver is selected
         if not tier_1_driver and not tier_2_drivers:
             raise forms.ValidationError("You must select at least one driver.")

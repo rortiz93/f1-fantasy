@@ -18,4 +18,9 @@ urlpatterns = [
     path('league/<int:league_id>/team/<int:team_id>/', views.team_view, name='team_view'),
     path('league/<int:league_id>/race-calendar/', views.race_calendar_view, name='race_calendar'),
     path('league/<int:league_id>/race/<int:race_id>/', views.race_detail_view, name='race_detail'),
+    path('join-league/<int:league_id>/', views.join_league, name='join_league'),
+    path('create-team/<int:league_id>/', views.create_team, name='create_team'),
+    path('league/<int:league_id>/team/<int:team_id>/activate-mulligan/', views.activate_mulligan, name='activate_mulligan'),
+    path('league/<int:league_id>/team/<int:team_id>/activate-overdrive/', views.activate_overdrive, name='activate_overdrive'),
+    path('league/<int:league_id>/team/<int:team_id>/set-overdrive-driver/', views.set_overdrive_driver, name='set_overdrive_driver'),
 ]

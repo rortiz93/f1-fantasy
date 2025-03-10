@@ -20,6 +20,20 @@
         {% else %}
             <p>You are not part of any leagues yet.</p>
         {% endif %}
+        {% if open_leagues %}
+            <h3>Available Leagues:</h3>
+            <ul>
+            {% for league in open_leagues %}
+                <li>
+                    {{ league.name }} - {{ league.season }}
+                    <form method="post" action="{% url 'join_league' league.id %}">
+                        {% csrf_token %}
+                        <button class="btn btn-primary" type="submit">Join</button>
+                    </form>
+                </li>
+            {% endfor %}
+            </ul>
+        {% endif %}
     </section>
 
     <!-- Create League Button -->

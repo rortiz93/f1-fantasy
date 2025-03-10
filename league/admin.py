@@ -2,7 +2,7 @@ from django.contrib import admin
 
 # Register your models here.
 
-from .models import Race, TeamSelection, RaceResult, League, Constructor, Driver, Team, RaceTemplate, PredictionAnswer, PredictionQuestion
+from .models import Race, TeamSelection, RaceResult, League, Constructor, Driver, Team, RaceTemplate, PredictionAnswer, PredictionQuestion, MulliganUsage, OverdriveUsage
 from .utils import calculate_team_points
 
 
@@ -55,3 +55,14 @@ class ConstructorAdmin(admin.ModelAdmin):
 @admin.register(Driver)
 class DriverAdmin(admin.ModelAdmin):
     list_display = ('name', 'tier', 'constructor')  # Customize fields to display in admin list view
+
+@admin.register(MulliganUsage)
+class MulliganUsageAdmin(admin.ModelAdmin):
+    list_display = ('team', 'season_half', 'date_used')
+    search_fields = ('team__name',)
+    list_filter = ('season_half',)
+@admin.register(OverdriveUsage)
+class OverdriveUsageAdmin(admin.ModelAdmin):
+    list_display = ('team', 'date_used')
+    search_fields = ('team__name', 'driver')
+    list_filter = ('team',)
