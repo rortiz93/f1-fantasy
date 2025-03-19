@@ -1,6 +1,7 @@
 {% extends 'league/base.html' %}
 {% load static %}
 {% load custom_filters %}
+{% load tz %}
 {% block title %}Race Team Selection{% endblock %}
 
 {% block content %}
@@ -13,7 +14,9 @@
             <p class="mb-0"><strong>Location:</strong> {{ race.template.location }} - {{ race.template.circuit }}</p>
             <p class="mt-2">
                 <strong>Lineup Deadline:</strong> 
-                {{ race.lineup_deadline|date:"F j, Y, g:i A" }} (ET)
+                {% timezone "America/New_York" %}
+                    {{ lineup_deadline|date:"F j, Y, g:i A" }}
+                {% endtimezone %} (ET)
             </p>
         </div>
     </div>
@@ -53,6 +56,7 @@
         {% if has_overdrive_available  %}
             <!-- Show the option to use the overdrive -->
             <button type="button" id="useOverdriveBtn" class="btn btn-primary">Use Overdrive</button>
+            <div id="overdriveDriverMessage"></div>
             {% if team.overdrive_active %}
                 <div id="overdrive-driver-container">
                     <label for="overdriveDriverSelect">Select Overdrive Driver:</label>
@@ -60,16 +64,8 @@
                         <!-- Options populated dynamically -->
                     </select>
                     <button id="confirmOverdriveDriverBtn">Confirm Overdrive Driver</button>
-                    <div id="overdriveDriverMessage"></div>
-                    <div id="overdrive-row">
-                        <h4>Select Overdrive Driver</h4>
-                        <!-- This row will be shown dynamically -->
-                        <div>
-                            <select id="overdriveDriverSelect"></select>
-                            <button id="confirmOverdriveDriverBtn">Confirm Overdrive Driver</button>
-                            <div id="overdriveDriverMessage"></div>
-                        </div>
-                    </div>
+                    
+                
                 </div>
             {% endif %}
         
@@ -152,16 +148,22 @@
         <form method="post" id="raceForm" class="mt-3">
             {% csrf_token %}
 
+
+            <!-- Prediction Question Section -->
            <!-- Prediction Question Section -->
+            <!-- Prediction Question Section -->
             {% if prediction_question %}
-            <h4>Prediction Question</h4>
+            <h5>{{ prediction_question.question_text }}</h5>  <!-- Show question text as header -->
+
             <div class="form-group">
-                {% if form.prediction_answer %}
-                    <label for="{{ form.prediction_answer.id_for_label }}">{{ form.prediction_answer.label|safe}}</label>
-                    {{ form.prediction_answer }}
-                {% else %}
-                    <p>No prediction question available for this race.</p>
-                {% endif %}
+                {% for field in form %}
+                    {% if field.name in prediction_question.options.keys or field.name == "prediction_answer" %}
+                        <div class="mb-3">
+                            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                            {{ field }}
+                        </div>
+                    {% endif %}
+                {% endfor %}
             </div>
             {% else %}
             <div class="alert alert-warning">

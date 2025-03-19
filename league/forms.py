@@ -1,6 +1,6 @@
 from django import forms
 from .models import TeamSelection, Driver, PredictionAnswer, PredictionQuestion
-
+import json
 class PredictionAnswerForm(forms.ModelForm):
     class Meta:
         model = PredictionAnswer
@@ -15,10 +15,15 @@ class PredictionAnswerForm(forms.ModelForm):
                 self.fields['answer'] = forms.ChoiceField(
                     choices=[(option, option) for option in prediction_question.options]
                 )
+            elif prediction_question.question_type == 'multi_dropdown':
+                options_dict = json.loads(prediction_question.options) if isinstance(prediction_question.options, str) else prediction_question.options
+                for dropdown_name, choices in options_dict.items():
+                    self.fields[dropdown_name] = forms.ChoiceField(choices=[(choice, choice) for choice in choices], required=True)
             else:
                 self.fields['answer'] = forms.CharField(widget=forms.TextInput())
+
 class TeamSelectionForm(forms.ModelForm):
-    # Separate fields for Tier 1 and Tier 2 drivers
+    # Standard fields for team selection
     tier_1_driver = forms.ModelChoiceField(
         queryset=Driver.objects.filter(tier=1),
         label="Select a Tier 1 Driver",
@@ -30,35 +35,23 @@ class TeamSelectionForm(forms.ModelForm):
         label="Select Tier 2 Drivers",
         widget=forms.CheckboxSelectMultiple
     )
-    prediction_answer = forms.CharField(
-        required=False,
-        label="Prediction Answer",
-        widget=forms.TextInput(attrs={'class': 'form-control'})
-    )
 
     class Meta:
         model = TeamSelection
         fields = ['tier_1_driver', 'tier_2_drivers']
 
     def __init__(self, *args, **kwargs):
-        # Custom arguments
         self.prediction_question = kwargs.pop('prediction_question', None)
         self.prediction_answer_instance = kwargs.pop('prediction_answer_instance', None)
         super().__init__(*args, **kwargs)
 
-        # Initialize Tier 1 and Tier 2 driver fields
         self.fields['tier_1_driver'].queryset = Driver.objects.filter(tier=1).order_by('-price')
         self.fields['tier_1_driver'].label_from_instance = lambda obj: f"{obj.name} - ${obj.price}M"
 
         self.fields['tier_2_drivers'].queryset = Driver.objects.filter(tier=2).order_by('-price')
-
         self.fields['tier_2_drivers'].label_from_instance = lambda obj: f"{obj.name} - ${obj.price}M"
 
-        # Prepopulate prediction answer if instance exists
-        if self.prediction_answer_instance:
-            self.initial['prediction_answer'] = self.prediction_answer_instance.answer
-
-        # Customize prediction_answer field based on the prediction question
+        # Handle prediction question customization
         if self.prediction_question:
             if self.prediction_question.question_type == 'multiple_choice':
                 self.fields['prediction_answer'] = forms.ChoiceField(
@@ -66,40 +59,28 @@ class TeamSelectionForm(forms.ModelForm):
                     label=self.prediction_question.question_text,
                     widget=forms.Select(attrs={'class': 'form-control'})
                 )
+            elif self.prediction_question.question_type == 'multi_dropdown':
+                # Dynamically create fields for multiple dropdowns
+                options_dict = json.loads(self.prediction_question.options) if isinstance(self.prediction_question.options, str) else self.prediction_question.options
+                for dropdown_name, choices in options_dict.items():
+                    self.fields[dropdown_name] = forms.ChoiceField(
+                        choices=[(choice, choice) for choice in choices],
+                        label=dropdown_name.replace('_', ' ').title(),
+                        widget=forms.Select(attrs={'class': 'form-control'}),
+                        required=True
+                    )
+
+        # Prepopulate the prediction answer fields
+        if self.prediction_answer_instance:
+            if self.prediction_question.question_type == 'multi_dropdown':
+                answer_dict = json.loads(self.prediction_answer_instance.answer) if isinstance(self.prediction_answer_instance.answer, str) else self.prediction_answer_instance.answer
+                for dropdown_name in answer_dict:
+                    if dropdown_name in self.fields:
+                        self.initial[dropdown_name] = answer_dict[dropdown_name]
             else:
-                self.fields['prediction_answer'].label = self.prediction_question.question_text
-
-    def clean(self):
-        cleaned_data = super().clean()
-        tier_1_driver = cleaned_data.get("tier_1_driver")
-        tier_2_drivers = cleaned_data.get("tier_2_drivers")
-
-        # Calculate the total cost
-        total_cost = tier_1_driver.price if tier_1_driver else 0
-        total_cost += sum(driver.price for driver in tier_2_drivers)
-
-        # Validate budget cap
-        if total_cost > 50:
-            raise forms.ValidationError("Total cost of drivers exceeds the $50M salary cap.")
-        # Ensure at least one driver is selected
-        if not tier_1_driver and not tier_2_drivers:
-            raise forms.ValidationError("You must select at least one driver.")
-
-        # Validate Tier 2 driver limit
-        if tier_1_driver and tier_1_driver.name == "NA":
-            if len(tier_2_drivers) > 5:
-                raise forms.ValidationError("You can select up to 5 Tier 2 drivers when 'NA' is selected.")
-        else:
-            if len(tier_2_drivers) > 4:
-                raise forms.ValidationError("You can select up to 4 Tier 2 drivers.")
-
-      
-
-        cleaned_data['total_cost'] = total_cost
-        return cleaned_data
+                self.initial['prediction_answer'] = self.prediction_answer_instance.answer
 
     def save(self, commit=True):
-        # Save TeamSelection
         team_selection = super().save(commit=False)
         if commit:
             team_selection.save()
@@ -110,7 +91,7 @@ class TeamSelectionForm(forms.ModelForm):
                 team_selection.drivers.add(driver)
             self.save_m2m()
 
-        # Save PredictionAnswer
+        # Save Prediction Answer
         if self.prediction_question:
             if not self.prediction_answer_instance:
                 prediction_answer = PredictionAnswer(
@@ -119,7 +100,16 @@ class TeamSelectionForm(forms.ModelForm):
                 )
             else:
                 prediction_answer = self.prediction_answer_instance
-            prediction_answer.answer = self.cleaned_data.get('prediction_answer', "")
+            
+            # Store multiple answers as JSON
+            if self.prediction_question.question_type == 'multi_dropdown':
+                prediction_answer.answer = json.dumps({
+                    field_name: self.cleaned_data[field_name]
+                    for field_name in self.prediction_question.options.keys()
+                })
+            else:
+                prediction_answer.answer = self.cleaned_data.get('prediction_answer', "")
+
             if commit:
                 prediction_answer.save()
 

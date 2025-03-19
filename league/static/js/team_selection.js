@@ -2,6 +2,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const submitBtn = document.getElementById("submitBtn");
     const useMulliganBtn = document.getElementById("useMulliganBtn");
     const useOverdriveBtn = document.getElementById("useOverdriveBtn");
+    const overdriveMessage = document.getElementById("overdriveDriverMessage")
     const tier1DriverSelect = document.getElementById("id_tier_1_driver");
     const tier2DriverCheckboxes = document.querySelectorAll(".tier-2-driver");
     const budgetLimit = 50; // Budget in millions
@@ -84,6 +85,7 @@ document.addEventListener("DOMContentLoaded", function () {
             fetch(`/league/${leagueId}/team/${teamId}/activate-overdrive/`, {
                 method: "POST",
                 headers: {
+                    "X-CSRFToken": "{{ csrf_token }}",
                     "Content-Type": "application/json"
                 }
             })
@@ -103,8 +105,7 @@ document.addEventListener("DOMContentLoaded", function () {
                             overdriveSelect.appendChild(option);
                         }
                     });
-                    const overdriveRow = document.getElementById("overdrive-driver-container");
-                    overdriveRow.style.display = "block";
+                    
                 }
             })
             .catch(error => {

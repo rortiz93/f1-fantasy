@@ -17,7 +17,8 @@ from django.views.generic import ListView, DetailView
 from .utils import calculate_driver_performance, calculate_driver_session_points, calculate_total_driver_points, calculate_team_points, calculate_session_points, determine_current_season_half
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
-
+from zoneinfo import ZoneInfo
+from django.utils.timezone import is_aware, make_aware
 
 from decimal import Decimal
 def register(request):
@@ -309,7 +310,10 @@ def league_view(request, league_id):
     drivers = Driver.objects.all().order_by('-price')
 
     # Calculate points for the latest race
-    latest_race = Race.objects.filter(league=league, template__date__lt=timezone.now().date()).order_by('-template__date').first()
+    latest_race = Race.objects.filter(
+        league=league,
+        template__date__lt=timezone.now().date()
+    ).order_by('-template__round').first()  # Ensure latest race is selected by round
     latest_race_points = []
     if latest_race:
         calculate_team_points(latest_race)
@@ -368,6 +372,15 @@ class RaceDetailView(LoginRequiredMixin, DetailView):
         league_id = self.kwargs.get('league_id')
         team_id = self.kwargs.get('team_id')
         race = self.object
+
+        # Ensure lineup_deadline is timezone-aware
+        if not is_aware(race.lineup_deadline):
+            race.lineup_deadline = make_aware(race.lineup_deadline)
+        # Convert UTC time to Eastern Time (ET)
+        eastern_tz = ZoneInfo("America/New_York")
+        lineup_deadline_et = race.lineup_deadline.astimezone(eastern_tz)
+
+        print(f"Final lineup_deadline_et: {lineup_deadline_et}")
         context['league_id'] = league_id
         context['team_id'] = team_id
         current_time = timezone.now()
@@ -386,7 +399,7 @@ class RaceDetailView(LoginRequiredMixin, DetailView):
         context['is_before_mulligan_deadline'] = timezone.now() < self.object.mulligan_deadline
        
         # Add the lineup deadline to the context
-        context['lineup_deadline'] = self.object.lineup_deadline
+        context['lineup_deadline'] = lineup_deadline_et
         
         # Initialize prediction_form to avoid referencing before assignment
         prediction_form = None
@@ -426,7 +439,7 @@ class RaceDetailView(LoginRequiredMixin, DetailView):
             },
         )
         # Debug the queryset
-        print("Tier 2 Drivers Queryset:", form.fields['tier_2_drivers'].queryset)
+        #print("Tier 2 Drivers Queryset:", form.fields['tier_2_drivers'].queryset)
         context.update({
             'form': form,
             'prediction_question': prediction_question,
@@ -574,7 +587,8 @@ def activate_mulligan(request, league_id, team_id):
        
     
     return JsonResponse({"status": "error", "message": "Invalid request method"})
-
+    
+@csrf_exempt
 def activate_overdrive(request, league_id, team_id):
     if request.method == "POST":
         team = get_object_or_404(Team, id=team_id)
